@@ -47,55 +47,18 @@ const Packages = forwardRef((props, ref) => {
   }, []);
 
   // Map API data to your expected format
-  const packages = apiPackages.map((pkg) => {
-    const basePackage = {
-      name: pkg.name,
-      price: `$${pkg.price}`,
-      color: pkg.type === 'silver' ? theme.palette.grey[400] : 
-             pkg.type === 'gold' ? theme.palette.warning.main : 
-             primaryColor,
-      benefits: [] // We'll populate this based on package type
-    };
-
-    // Add benefits based on package type
-    switch(pkg.type) {
-      case 'silver':
-        basePackage.description = "Basic package for starters";
-        basePackage.benefits = [
-          "5 Match Tickets",
-          "Basic Seat Selection",
-          "Email Support",
-          "Event Newsletter"
-        ];
-        break;
-      case 'gold':
-        basePackage.description = "Popular choice for fans";
-        basePackage.benefits = [
-          "10 Match Tickets",
-          "Premium Seat Selection",
-          "Priority Support",
-          "Exclusive Merch Discount",
-          "VIP Lounge Access (1 match)"
-        ];
-        basePackage.popular = true;
-        break;
-      case 'platinum':
-        basePackage.description = "Ultimate fan experience";
-        basePackage.benefits = [
-          "All Match Tickets",
-          "Best Seat Selection",
-          "24/7 Dedicated Support",
-          "Free Official Merchandise",
-          "VIP Lounge Access (All matches)",
-          "Meet & Greet Opportunity"
-        ];
-        break;
-      default:
-        break;
-    }
-
-    return basePackage;
-  });
+  const packages = apiPackages.map((pkg) => ({
+    name: pkg.name,
+    price: `$${pkg.price}`,
+    description: pkg.type === 'silver' ? "Basic package for starters" :
+               pkg.type === 'gold' ? "Popular choice for fans" :
+               "Ultimate fan experience",
+    color: pkg.type === 'silver' ? theme.palette.grey[400] : 
+           pkg.type === 'gold' ? theme.palette.warning.main : 
+           primaryColor,
+    benefits: pkg.benefits,
+    popular: pkg.type === 'gold' // Mark gold package as popular
+  }));
 
   if (loading) {
     return (
@@ -219,7 +182,9 @@ const Packages = forwardRef((props, ref) => {
                       <ListItemIcon sx={{ minWidth: 36 }}>
                         <CheckCircle color="success" />
                       </ListItemIcon>
-                      <Typography variant="body1">{benefit}</Typography>
+                      <Typography variant="body1" sx={{ textTransform: 'capitalize' }}>
+                        {benefit}
+                      </Typography>
                     </ListItem>
                   ))}
                 </List>
