@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -15,52 +15,103 @@ import {
 } from '@mui/material';
 import { CheckCircle } from '@mui/icons-material';
 
+const BASE_URL = process.env.REACT_APP_API_URL;
+
 const Packages = forwardRef((props, ref) => {
   const theme = useTheme();
   const primaryColor = "#046f04";
+  const [apiPackages, setApiPackages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const packages = [
-    {
-      name: "Silver",
-      price: "$2,999",
-      description: "Basic package for starters",
-      color: theme.palette.grey[400],
-      benefits: [
-        "5 Match Tickets",
-        "Basic Seat Selection",
-        "Email Support",
-        "Event Newsletter"
-      ]
-    },
-    {
-      name: "Gold",
-      price: "$3.999",
-      description: "Popular choice for fans",
-      color: theme.palette.warning.main,
-      benefits: [
-        "10 Match Tickets",
-        "Premium Seat Selection",
-        "Priority Support",
-        "Exclusive Merch Discount",
-        "VIP Lounge Access (1 match)"
-      ],
-      popular: true
-    },
-    {
-      name: "Platinum",
-      price: "$5,999",
-      description: "Ultimate fan experience",
-      color: primaryColor,
-      benefits: [
-        "All Match Tickets",
-        "Best Seat Selection",
-        "24/7 Dedicated Support",
-        "Free Official Merchandise",
-        "VIP Lounge Access (All matches)",
-        "Meet & Greet Opportunity"
-      ]
+  useEffect(() => {
+    const fetchPackages = async () => {
+      try {
+        const response = await fetch(`${BASE_URL}/packages`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch packages');
+        }
+        const data = await response.json();
+        if (data.error) {
+          throw new Error(data.message);
+        }
+        setApiPackages(data.data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPackages();
+  }, []);
+
+  // Map API data to your expected format
+  const packages = apiPackages.map((pkg) => {
+    const basePackage = {
+      name: pkg.name,
+      price: `$${pkg.price}`,
+      color: pkg.type === 'silver' ? theme.palette.grey[400] : 
+             pkg.type === 'gold' ? theme.palette.warning.main : 
+             primaryColor,
+      benefits: [] // We'll populate this based on package type
+    };
+
+    // Add benefits based on package type
+    switch(pkg.type) {
+      case 'silver':
+        basePackage.description = "Basic package for starters";
+        basePackage.benefits = [
+          "5 Match Tickets",
+          "Basic Seat Selection",
+          "Email Support",
+          "Event Newsletter"
+        ];
+        break;
+      case 'gold':
+        basePackage.description = "Popular choice for fans";
+        basePackage.benefits = [
+          "10 Match Tickets",
+          "Premium Seat Selection",
+          "Priority Support",
+          "Exclusive Merch Discount",
+          "VIP Lounge Access (1 match)"
+        ];
+        basePackage.popular = true;
+        break;
+      case 'platinum':
+        basePackage.description = "Ultimate fan experience";
+        basePackage.benefits = [
+          "All Match Tickets",
+          "Best Seat Selection",
+          "24/7 Dedicated Support",
+          "Free Official Merchandise",
+          "VIP Lounge Access (All matches)",
+          "Meet & Greet Opportunity"
+        ];
+        break;
+      default:
+        break;
     }
-  ];
+
+    return basePackage;
+  });
+
+  if (loading) {
+    return (
+      <Box ref={ref} component="section" sx={{ py: 8, px: 2, textAlign: 'center' }}>
+        <Typography variant="h6">Loading packages...</Typography>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box ref={ref} component="section" sx={{ py: 8, px: 2, textAlign: 'center' }}>
+        <Typography variant="h6" color="error">Error: {error}</Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box 
@@ -199,6 +250,6 @@ const Packages = forwardRef((props, ref) => {
   );
 });
 
-Packages.displayName = 'Packages'; // This helps with debugging
+Packages.displayName = 'Packages';
 
 export default Packages;

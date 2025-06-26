@@ -34,8 +34,14 @@ const ResetPassword = () => {
       setToken(tokenParam);
     } else {
       setSnackbar({ open: true, message: 'Invalid or missing reset credentials.', severity: 'error' });
+
+      // Delay before redirecting to allow snackbar to briefly show
+      setTimeout(() => {
+        navigate('/signin');
+      }, 1500);
     }
-  }, [location.search]);
+  }, [location.search, navigate]);
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;
