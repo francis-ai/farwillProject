@@ -97,7 +97,9 @@ export default function Navbar() {
       
       <List>
         {navItems.map((item) => (
-          <ListItem key={item.id} disablePadding>
+          <ListItem key={item.id} disablePadding 
+          component={Link}
+          to={`${item.id}`}>
             <ListItemButton sx={{ textAlign: 'right', px: 3, color: '#000', '&:hover': { bgcolor: 'rgba(4, 111, 4, 0.1)' }}}>
               <ListItemText primary={item.name} />
             </ListItemButton>
@@ -145,7 +147,7 @@ export default function Navbar() {
               <Box key={item.id} sx={{ position: 'relative' }}>
                 <Typography 
                   component="a" 
-                  href={`#${item.id}`}
+                  href={`${item.id}`}
                   sx={navLinkStyles}
                 >
                   {item.name}
