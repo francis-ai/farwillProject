@@ -21,7 +21,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import AuthLayout from '../component/AuthLayout';
-import { useAuth } from '../context/AuthContext'; // ✅ import your AuthContext
+import { useAuth } from '../context/AuthContext';
 
 const BASE_URL = process.env.REACT_APP_API_URL;
 
@@ -52,21 +52,20 @@ const SignIn = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const data = new FormData();
-    data.append('email', formData.email);
-    data.append('password', formData.password);
-
     try {
-      const response = await fetch(`${BASE_URL}/auth/login`, {
+      const response = await fetch(`${BASE_URL}/api/auth/user/login`, {
         method: 'POST',
-        body: data
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
       });
 
       const result = await response.json();
 
-      if (!result.error && result.data?.token && result.data?.user) {
-        // ✅ Correctly pass user and token to AuthContext
-        login(result.data.user, result.data.token);
+      if (!result.error && result.token && result._id) {
+        login({ _id: result._id, fullname: result.fullname, email: result.email }, result.token);
 
         setSnackbar({ open: true, message: 'Login successful!', severity: 'success' });
 
@@ -81,7 +80,7 @@ const SignIn = () => {
       setSnackbar({ open: true, message: 'Network error, please try again.', severity: 'error' });
     }
   };
-
+  
   return (
     <AuthLayout>
       <Typography variant="h4" gutterBottom sx={{ fontWeight: 700, color: '#068a06' }}>

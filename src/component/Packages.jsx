@@ -1,87 +1,135 @@
-import React, { forwardRef, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
+  CircularProgress,
   Grid,
   Card,
   CardContent,
-  CardHeader,
+  Tabs,
+  Tab,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  Collapse,
+  IconButton,
   Button,
-  List,
-  ListItem,
-  ListItemIcon,
   Divider,
-  useTheme
+  Snackbar,
+  Alert,
+  Modal
 } from '@mui/material';
-import { CheckCircle } from '@mui/icons-material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+
 
 const BASE_URL = process.env.REACT_APP_API_URL;
+const primaryColor = "#046f04";
 
-const Packages = forwardRef((props, ref) => {
-  const theme = useTheme();
-  const primaryColor = "#046f04";
-  const [apiPackages, setApiPackages] = useState([]);
+export default function PackagesCard() {
+  const { user } = useAuth();   // ✅ auth context
+  const navigate = useNavigate();
+
+  const [packages, setPackages] = useState([]);
+  const [fees, setFees] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [tabIndex, setTabIndex] = useState({});
+  const [selectedPeople, setSelectedPeople] = useState({});
+  const [expanded, setExpanded] = useState({});
+  const [openSnackbar, setOpenSnackbar] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState(null);
 
   useEffect(() => {
-    const fetchPackages = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch(`${BASE_URL}/packages`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch packages');
-        }
-        const data = await response.json();
-        if (data.error) {
-          throw new Error(data.message);
-        }
-        setApiPackages(data.data);
+        const [pkgRes, feesRes] = await Promise.all([
+          axios.get(`${BASE_URL}/api/public/packages`),
+          axios.get(`${BASE_URL}/api/public/fees`)
+        ]);
+
+        const pkgs = pkgRes.data.data || [];
+        setPackages(pkgs);
+        setFees(feesRes.data.data || feesRes.data || null);
       } catch (err) {
-        setError(err.message);
+        console.error('Failed to fetch packages/fees:', err);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchPackages();
+    fetchData();
   }, []);
 
-  // Map API data to your expected format
-  const packages = apiPackages.map((pkg) => ({
-    name: pkg.name,
-    price: `$${pkg.price}`,
-    description: pkg.type === 'silver' ? "Basic package for starters" :
-               pkg.type === 'gold' ? "Popular choice for fans" :
-               "Ultimate fan experience",
-    color: pkg.type === 'silver' ? theme.palette.grey[400] : 
-           pkg.type === 'gold' ? theme.palette.warning.main : 
-           primaryColor,
-    benefits: pkg.benefits,
-    popular: pkg.type === 'gold' // Mark gold package as popular
-  }));
+  if (loading) return <CircularProgress />;
 
-  if (loading) {
-    return (
-      <Box ref={ref} component="section" sx={{ py: 8, px: 2, textAlign: 'center' }}>
-        <Typography variant="h6">Loading packages...</Typography>
-      </Box>
-    );
-  }
+  const groupedPackages = packages.reduce((acc, pkg) => {
+    if (!acc[pkg.category]) acc[pkg.category] = [];
+    acc[pkg.category].push(pkg);
+    return acc;
+  }, {});
 
-  if (error) {
-    return (
-      <Box ref={ref} component="section" sx={{ py: 8, px: 2, textAlign: 'center' }}>
-        <Typography variant="h6" color="error">Error: {error}</Typography>
-      </Box>
-    );
-  }
+  const handleTabChange = (category, newIndex) => {
+    setTabIndex((prev) => ({ ...prev, [category]: newIndex }));
+  };
+
+  const handlePeopleChange = (category, people) => {
+    setSelectedPeople((prev) => ({ ...prev, [category]: Number(people) }));
+  };
+
+  const toggleExpand = (category) => {
+    setExpanded((prev) => ({ ...prev, [category]: !prev[category] }));
+  };
+
+  const calculateTotal = (category) => {
+    const pkgsInCategory = groupedPackages[category] || [];
+    if (!fees || pkgsInCategory.length === 0) return 0;
+
+    const duration = pkgsInCategory.flatMap(pkg => pkg.durations)[tabIndex[category] || 0];
+    if (!duration) return 0;
+
+    const people = selectedPeople[category] || 1;
+    const room = duration.roomOptions.find(r => r.people === people);
+    const roomPrice = room ? room.price : 0;
+
+    const subtotal = roomPrice +
+      (fees.visaFee || 0) +
+      (fees.airportPickupFee || 0) +
+      (fees.miscFee || 0) +
+      (fees.ticketPrice || 0);
+
+    return subtotal * (1 + (fees.marginPercentage || 20) / 100);
+  };
+
+  const handleActivatePlan = (category) => {
+    if (!user) {
+      setOpenSnackbar(true);
+      setTimeout(() => {
+        navigate('/signin');
+      }, 3000);
+      return;
+    }
+
+    // build plan details
+    const duration = groupedPackages[category].flatMap(pkg => pkg.durations)[tabIndex[category] || 0];
+    const people = selectedPeople[category] || 1;
+    const room = duration.roomOptions.find(r => r.people === people);
+
+    setSelectedPlan({
+      category,
+      nights: duration.nights,
+      people,
+      price: room ? room.price : 0,
+      total: calculateTotal(category)
+    });
+    setCheckoutOpen(true);
+  };
+
+  
 
   return (
-    <Box 
-      ref={ref} 
-      component="section" 
-      sx={{ py: 8, px: 2, backgroundColor: theme.palette.background.default }}
-    >
+    <Box sx={{ mt: 4, mb: 4, px: 2, mx: 'auto' }}>
       <Typography
         variant="h3"
         align="center"
@@ -89,11 +137,10 @@ const Packages = forwardRef((props, ref) => {
         sx={{
           fontWeight: 600,
           color: primaryColor,
-          mb: 2,
+          mb: 4,
           textTransform: 'uppercase',
           letterSpacing: '2px',
           fontSize: { xs: '1.5rem', sm: '2.0rem', md: '2.5rem' },
-          textAlign: 'center',
           '&::after': {
             content: '""',
             display: 'block',
@@ -107,114 +154,143 @@ const Packages = forwardRef((props, ref) => {
       >
         Our Packages
       </Typography>
-      
-      <Grid container spacing={4} justifyContent="center">
-        {packages.map((pkg, index) => (
-          <Grid item key={index} xs={12} sm={6} md={4}>
-            <Card 
-              elevation={pkg.popular ? 6 : 3} 
-              sx={{ 
-                height: '100%',
-                width: '345px',
-                display: 'flex',
-                flexDirection: 'column',
-                border: pkg.popular ? `2px solid ${primaryColor}` : 'none',
-                position: 'relative'
-              }}
-            >
-              {pkg.popular && (
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    top: 0,
-                    right: 16,
-                    backgroundColor: primaryColor,
-                    color: 'white',
-                    px: 2,
-                    py: 0.5,
-                    borderRadius: '0 0 4px 4px',
-                    fontSize: '0.75rem',
-                    fontWeight: 'bold'
-                  }}
-                >
-                  POPULAR
-                </Box>
-              )}
-              
-              <CardHeader
-                title={pkg.name}
-                subheader={pkg.description}
-                titleTypographyProps={{
-                  variant: 'h4',
-                  align: 'center',
-                  color: 'common.white'
-                }}
-                subheaderTypographyProps={{
-                  align: 'center',
-                  color: 'common.white'
-                }}
-                sx={{
-                  backgroundColor: pkg.color,
-                  py: 3,
-                  color: 'common.white'
-                }}
-              />
-              
-              <CardContent sx={{ flexGrow: 1 }}>
-                <Typography 
-                  variant="h3" 
-                  align="center" 
-                  gutterBottom
-                  sx={{ 
-                    fontWeight: 'bold',
-                    color: primaryColor,
-                    my: 2
-                  }}
-                >
-                  {pkg.price}
-                </Typography>
-                
-                <Divider sx={{ my: 2 }} />
-                
-                <List>
-                  {pkg.benefits.map((benefit, i) => (
-                    <ListItem key={i} disableGutters>
-                      <ListItemIcon sx={{ minWidth: 36 }}>
-                        <CheckCircle color="success" />
-                      </ListItemIcon>
-                      <Typography variant="body1" sx={{ textTransform: 'capitalize' }}>
-                        {benefit}
-                      </Typography>
-                    </ListItem>
-                  ))}
-                </List>
-              </CardContent>
-              
-              <Box sx={{ p: 2, textAlign: 'center' }}>
-                <Button
-                  variant="contained"
-                  fullWidth
-                  size="large"
-                  sx={{
-                    backgroundColor: primaryColor,
-                    '&:hover': {
-                      backgroundColor: theme.palette.success.dark
-                    },
-                    fontWeight: 'bold',
-                    py: 1.5
-                  }}
-                >
-                  Select Package
-                </Button>
+
+      <Grid container spacing={3}>
+        {Object.entries(groupedPackages).map(([category, pkgsInCategory]) => (
+          <Grid item xs={12} sm={6} md={4} key={category}>
+            <Card elevation={3} sx={{ borderRadius: 3 }}>
+              {/* Header */}
+              <Box sx={{
+                bgcolor: primaryColor, color: "white", textAlign: "center",
+                py: 1.4, fontWeight: 600, fontSize: "1.8rem", letterSpacing: "1px"
+              }}>
+                {category}
               </Box>
+
+              <CardContent>
+                {/* Tabs */}
+                <Tabs
+                  value={tabIndex[category] || 0}
+                  onChange={(e, val) => handleTabChange(category, val)}
+                  centered
+                  sx={{
+                    mb: 2,
+                    "& .MuiTab-root": {
+                      textTransform: "none",
+                      fontWeight: 600,
+                      fontSize: "0.9rem",
+                      "&.Mui-selected": { color: primaryColor }
+                    },
+                    "& .MuiTabs-indicator": { backgroundColor: primaryColor }
+                  }}
+                >
+                  {pkgsInCategory.flatMap(pkg => pkg.durations).map((dur) => (
+                    <Tab key={dur.nights} label={`${dur.nights} nights`} />
+                  ))}
+                </Tabs>
+
+                {/* Radio Options */}
+                {pkgsInCategory.flatMap(pkg => pkg.durations).map((dur, idx) => {
+                  if (idx !== (tabIndex[category] || 0)) return null;
+                  return (
+                    <RadioGroup
+                      key={dur.nights}
+                      value={selectedPeople[category] || 1}
+                      onChange={(e) => handlePeopleChange(category, e.target.value)}
+                    >
+                      {dur.roomOptions.map((ro) => (
+                        <FormControlLabel
+                          key={ro.people}
+                          value={ro.people}
+                          control={<Radio sx={{ color: primaryColor, "&.Mui-checked": { color: primaryColor } }} />}
+                          label={`${ro.people} person(s) per room: ₦${ro.price.toLocaleString()}`}
+                        />
+                      ))}
+                    </RadioGroup>
+                  );
+                })}
+
+                {/* Total */}
+                <Divider sx={{ my: 2 }} />
+                <Box display="flex" justifyContent="space-between">
+                  <Typography variant="h6" sx={{ color: primaryColor, fontWeight: 700 }}>
+                    Total: ₦{calculateTotal(category).toLocaleString()}
+                  </Typography>
+                  <IconButton size="small" onClick={() => toggleExpand(category)}>
+                    <ExpandMoreIcon
+                      sx={{ transform: expanded[category] ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.3s' }}
+                    />
+                  </IconButton>
+                </Box>
+                <Collapse in={expanded[category]}>
+                  <Typography>Visa Fee: ₦{fees.visaFee.toLocaleString()}</Typography>
+                  <Typography>Airport Pickup: ₦{fees.airportPickupFee.toLocaleString()}</Typography>
+                  <Typography>Misc Fee: ₦{fees.miscFee.toLocaleString()}</Typography>
+                  <Typography>Match Ticket: ₦{fees.ticketPrice.toLocaleString()}</Typography>
+                  <Typography>Margin: {fees.marginPercentage || 20}%</Typography>
+                </Collapse>
+
+                {/* Activate Button */}
+                <Box mt={3}>
+                  <Button
+                    variant="contained"
+                    fullWidth
+                    sx={{ bgcolor: primaryColor, "&:hover": { bgcolor: "#035603" }, py: 1, borderRadius: 2 }}
+                    onClick={() => handleActivatePlan(category)}
+                  >
+                    Activate Plan
+                  </Button>
+                </Box>
+              </CardContent>
             </Card>
           </Grid>
         ))}
       </Grid>
+
+      {/* Snackbar for login required */}
+      <Snackbar open={openSnackbar} autoHideDuration={3000} onClose={() => setOpenSnackbar(false)}>
+        <Alert severity="warning">Please login to continue</Alert>
+      </Snackbar>
+
+      {/* Checkout Modal */}
+      <Modal open={checkoutOpen} onClose={() => setCheckoutOpen(false)}>
+        <Box sx={{
+          position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
+          bgcolor: "white", p: 4, borderRadius: 3, width: {xs: 250, md: 400}
+        }}>
+          <Typography variant="h6" gutterBottom>Checkout</Typography>
+          {selectedPlan && (
+            <>
+              <Box sx={{m: 2}}>
+                <Typography>Category: {selectedPlan.category}</Typography>
+                <Typography>Nights: {selectedPlan.nights}</Typography>
+                <Typography>People per Room: {selectedPlan.people}</Typography>
+                <Typography>Base Price: ₦{selectedPlan.price.toLocaleString()}</Typography>
+              </Box>
+              
+              <Divider />
+              <Box sx={{m: 1}}>
+                <Typography>Visa Fee: ₦{fees.visaFee.toLocaleString()}</Typography>
+                <Typography>Airport Pickup: ₦{fees.airportPickupFee.toLocaleString()}</Typography>
+                <Typography>Misc Fee: ₦{fees.miscFee.toLocaleString()}</Typography>
+                <Typography>Match Ticket: ₦{fees.ticketPrice.toLocaleString()}</Typography>
+                <Typography>Margin: {fees.marginPercentage || 20}%</Typography>
+              </Box>
+              <Divider />
+              <Typography fontWeight={700} mt={2}>
+                Total: ₦{selectedPlan.total.toLocaleString()}
+              </Typography>
+              <Button
+                fullWidth
+                variant="contained"
+                sx={{ mt: 3, bgcolor: primaryColor, "&:hover": { bgcolor: "#035603" } }}
+              >
+                Pay with Paystack
+              </Button>
+            </>
+          )}
+        </Box>
+      </Modal>
     </Box>
   );
-});
-
-Packages.displayName = 'Packages';
-
-export default Packages;
+}

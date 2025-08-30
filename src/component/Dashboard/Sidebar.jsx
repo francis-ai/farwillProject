@@ -6,7 +6,6 @@ import {
   CalendarToday as ScheduleIcon,
   Hotel as HotelIcon,
   ConfirmationNumber as TicketIcon,
-  Redeem as PackageIcon,
   Map as ItineraryIcon,
   AccountCircle as ProfileIcon,
   SupportAgent as SupportIcon,
@@ -20,11 +19,10 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
-    { text: 'Schedule', icon: <ScheduleIcon />, path: '/my-schedule' },
-    { text: 'Reservation', icon: <HotelIcon />, path: '/reservation' },
-    { text: 'Tickets', icon: <TicketIcon />, path: '/my-tickets' },
-    { text: 'My Package', icon: <PackageIcon />, path: '/my-package' },
+    { text: 'My Reservation', icon: <HotelIcon />, path: '/reservation' },
     { text: 'My Itinerary', icon: <ItineraryIcon />, path: '/my-itinerary' },
+    { text: 'Tickets', icon: <TicketIcon />, path: '/my-tickets' },
+    { text: 'Schedule', icon: <ScheduleIcon />, path: '/my-schedule' },
     { text: 'Profile', icon: <ProfileIcon />, path: '/profile' },
     { text: 'Support', icon: <SupportIcon />, path: '/support' },
     { text: 'Logout', icon: <LogoutIcon />, path: '/logout' }

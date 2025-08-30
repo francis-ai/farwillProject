@@ -32,7 +32,7 @@ const SignUp = () => {
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
-    severity: 'success', // 'success' | 'error'
+    severity: 'success',
   });
 
   const handleSnackbarClose = () => {
@@ -48,44 +48,34 @@ const SignUp = () => {
 
     const { fullName, email, password } = formData;
 
-    const data = new FormData();
-    data.append('full_name', fullName);
-    data.append('email', email);
-    data.append('password', password);
-
     try {
-      const response = await fetch(`${BASE_URL}/auth/register`, {
+      const response = await fetch(`${BASE_URL}/api/auth/user/register`, {
         method: 'POST',
-        body: data,
+        headers: {
+          'Content-Type': 'application/json', // ✅ tell backend we’re sending JSON
+        },
+        body: JSON.stringify({
+          fullname: fullName, // ✅ match backend field name
+          email,
+          password,
+        }),
       });
 
-      const contentType = response.headers.get('content-type');
+      const result = await response.json();
 
-      if (contentType && contentType.includes('application/json')) {
-        const result = await response.json();
-
-        if (!result.error) {
-          setSnackbar({
-            open: true,
-            message: 'Registration successful!',
-            severity: 'success',
-          });
-          setTimeout(() => {
-            window.location.href = '/signin';
-          }, 2000); // redirect after 2s
-        } else {
-          setSnackbar({
-            open: true,
-            message: result.message || 'Something went wrong.',
-            severity: 'error',
-          });
-        }
-      } else {
-        const raw = await response.text();
-        console.error('Unexpected response (HTML):', raw);
+      if (!result.error) {
         setSnackbar({
           open: true,
-          message: 'Unexpected server response. Please contact support.',
+          message: 'Registration successful!',
+          severity: 'success',
+        });
+        setTimeout(() => {
+          window.location.href = '/signin';
+        }, 2000);
+      } else {
+        setSnackbar({
+          open: true,
+          message: result.message || 'Something went wrong.',
           severity: 'error',
         });
       }
@@ -207,7 +197,6 @@ const SignUp = () => {
         </Typography>
       </form>
 
-      {/* Snackbar for success/error */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}

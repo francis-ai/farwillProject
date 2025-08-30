@@ -1,137 +1,134 @@
-import React from 'react';
-import DashboardLayout from '../../component/Dashboard/DashboardLayout';
+import React, { useEffect, useState, useCallback } from 'react';
 import { 
-  Container,
+  Container, 
   Typography,
-  Button,
-  Card,
-  CardContent,
-  CardMedia,
-  Grid,
+  CircularProgress, 
+  Paper,
   Divider,
+  Grid,
   Chip,
-  Box,
-  Paper
+  Box
 } from '@mui/material';
-import { Star, StarBorder, KingBed } from '@mui/icons-material';
+import NightsStayIcon from '@mui/icons-material/NightsStay';
+import PeopleIcon from '@mui/icons-material/People';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import DoneAllIcon from '@mui/icons-material/DoneAll';
+import InfoIcon from '@mui/icons-material/Info';
+import DashboardLayout from '../../component/Dashboard/DashboardLayout';
+import { useAuth } from '../../context/AuthContext';
 
-// Mock data - replace with your actual data
-const userReservation = {
-  booked: true,
-  hotel: {
-    name: 'Radisson Blu Hotel, Abidjan',
-    image: 'https://source.unsplash.com/random/800x600/?hotel',
-    stars: 5,
-    room: 'Deluxe Suite (Room 421)',
-    checkIn: '2025-01-10',
-    checkOut: '2025-01-20',
-    amenities: ['Free WiFi', 'Swimming Pool', 'Spa', 'Breakfast Included']
-  }
-};
+const MyReservation = () => {
+  const { user, authFetch } = useAuth();
+  const [reservations, setReservations] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-const renderStars = (count) => {
-  return (
-    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-      {[...Array(5)].map((_, i) => (
-        i < count ? 
-          <Star key={i} sx={{ color: '#FFD700', fontSize: '1.2rem' }} /> : 
-          <StarBorder key={i} sx={{ color: '#FFD700', fontSize: '1.2rem' }} />
-      ))}
-      <Typography variant="body2" sx={{ ml: 1 }}>({count} star)</Typography>
-    </Box>
-  );
-};
+  const fetchReservations = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await authFetch('/api/user/reservations');
+      setReservations(res.data || []);
+    } catch (err) {
+      console.error('Failed to fetch reservations:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [authFetch]);
 
-export default function MyReservation() {
+  useEffect(() => {
+    fetchReservations();
+  }, [fetchReservations]);
+
+  const getAccentColor = (category) => {
+    switch(category.toLowerCase()) {
+      case '5 star': return '#1a721dff';
+      case '4 star': return '#1a721dff';
+      case '3 star': return '#1a721dff';
+      default: return '#1a721dff';
+    }
+  };
+
   return (
     <DashboardLayout>
-      <Container maxWidth="md" sx={{ py: 4, mt: 5 }}>
-        <Typography variant="h4" sx={{ 
-          mb: 3,
-          fontWeight: 'bold',
-          color: '#068a06'
-        }}>
-          My Accommodation
+      <Container maxWidth="lg" sx={{ py: 4, mt: 5 }}>
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
+          Welcome, {user?.fullname || 'Guest'}
         </Typography>
 
-        {userReservation.booked ? (
-          <>
-            <Typography variant="h5" sx={{ mb: 2 }}>
-              Your Current Reservation
-            </Typography>
-            
-            <Card sx={{ mb: 4, p: 4 }}>
-              <Grid container>
-                <Grid item xs={12} md={4}>
-                  <CardMedia
-                    component="img"
-                    height="300"
-                    image={userReservation.hotel.image}
-                    alt={userReservation.hotel.name}
-                  />
-                </Grid>
-                <Grid item xs={12} md={8}>
-                  <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="h5" component="div">
-                        {userReservation.hotel.name}
-                      </Typography>
-                      {renderStars(userReservation.hotel.stars)}
-                    </Box>
-                    
-                    <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
-                      <KingBed sx={{ verticalAlign: 'middle', mr: 1 }} />
-                      {userReservation.hotel.room}
-                    </Typography>
-                    
-                    <Box sx={{ mt: 2, mb: 3 }}>
-                      <Chip label={`Check-in: ${userReservation.hotel.checkIn}`} sx={{ mr: 1 }} />
-                      <Chip label={`Check-out: ${userReservation.hotel.checkOut}`} />
-                    </Box>
-                    
-                    <Typography variant="body1" sx={{ mb: 1 }}>Amenities:</Typography>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                      {userReservation.hotel.amenities.map((amenity, index) => (
-                        <Chip key={index} label={amenity} size="small" />
-                      ))}
-                    </Box>
-                    
-                    <Button 
-                      variant="contained" 
-                      sx={{ 
-                        mt: 'auto',
-                        alignSelf: 'flex-start',
-                        backgroundColor: '#068a06',
-                        '&:hover': { backgroundColor: '#056a05' }
-                      }}
-                    >
-                      Modify Reservation
-                    </Button>
-                  </CardContent>
-                </Grid>
-              </Grid>
-            </Card>
-            
-            <Divider sx={{ my: 4 }} />
-          </>
+        {loading ? (
+          <CircularProgress sx={{ mt: 4 }} />
+        ) : reservations.length === 0 ? (
+          <Typography sx={{ mt: 4, fontStyle: 'italic', color: 'text.secondary' }}>
+            You haven’t booked any packages yet.
+          </Typography>
         ) : (
-          <Paper elevation={3} sx={{ p: 3, mb: 4, textAlign: 'center' }}>
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              You haven't booked any accommodation yet
-            </Typography>
-            <Button 
-              variant="contained" 
-              size="large"
-              sx={{ 
-                backgroundColor: '#068a06',
-                '&:hover': { backgroundColor: '#056a05' }
-              }}
-            >
-              Book Reservation Now
-            </Button>
-          </Paper>
+          <Grid container spacing={3} mt={2}>
+            {reservations.map((r) => (
+              <Grid item xs={12} sm={6} md={4} key={r._id}>
+                <Paper 
+                  sx={{ 
+                    borderRadius: 3, 
+                    overflow: 'hidden', 
+                    boxShadow: 4, 
+                    transition: '0.4s', 
+                    "&:hover": { boxShadow: 8, transform: 'translateY(-6px)' }
+                  }}
+                >
+                  {/* Accent bar */}
+                  <Box sx={{ height: 6, bgcolor: getAccentColor(r.plan.category) }} />
+
+                  <Box sx={{ p: 3 }}>
+                    <Typography variant="h6" fontWeight="bold" gutterBottom>
+                      {r.plan.category} Package
+                    </Typography>
+
+                    <Divider sx={{ mb: 1 }} />
+
+                    <Box display="flex" alignItems="center" mb={0.5}>
+                      <NightsStayIcon fontSize="small" sx={{ mr: 1, color: '#1a721dff' }} />
+                      <Typography><strong>Nights:</strong> {r.plan.nights}</Typography>
+                    </Box>
+
+                    <Box display="flex" alignItems="center" mb={0.5}>
+                      <PeopleIcon fontSize="small" sx={{ mr: 1, color: '#1a721dff' }} />
+                      <Typography><strong>People per room:</strong> {r.plan.people}</Typography>
+                    </Box>
+
+                    <Box display="flex" alignItems="center" mb={0.5}>
+                      <AttachMoneyIcon fontSize="small" sx={{ mr: 1, color: '#1a721dff' }} />
+                      <Typography><strong>Price for room:</strong> ₦{r.plan.price.toLocaleString()}</Typography>
+                    </Box>
+
+                    <Box display="flex" alignItems="center" mb={0.5}>
+                      <AttachMoneyIcon fontSize="small" sx={{ mr: 1, color: '#1a721dff' }} />
+                      <Typography><strong>Total:</strong> ₦{r.plan.total.toLocaleString()}</Typography>
+                    </Box>
+
+                    <Box display="flex" alignItems="center" mb={1}>
+                      <DoneAllIcon fontSize="small" sx={{ mr: 1, color: '#1a721dff' }} />
+                      <Chip 
+                        label={r.status.toUpperCase()} 
+                        color={r.status === "paid" ? "success" : r.status === "pending" ? "warning" : "error"} 
+                        size="small" 
+                      />
+                    </Box>
+
+                    <Divider sx={{ my: 1 }} />
+
+                    <Box display="flex" alignItems="center">
+                      <InfoIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
+                      <Typography variant="body2" color="text.secondary">
+                        Your itinerary will be updated soon. Please check back later to see the full breakdown of your package.
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
         )}
       </Container>
     </DashboardLayout>
   );
-}
+};
+
+export default MyReservation;

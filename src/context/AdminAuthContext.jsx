@@ -1,14 +1,14 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
-const AuthContext = createContext();
+const AdminAuthContext = createContext();
 const BASE_URL = process.env.REACT_APP_API_URL;
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token') || null);
+export const AdminAuthProvider = ({ children }) => {
+  const [admin, setAdmin] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem('adminToken') || null);
   const [loading, setLoading] = useState(true);
 
-  // Add this function to make authenticated requests
+  // Add this function to make authenticated requests as admin
   const authFetch = async (url, options = {}) => {
     const headers = {
       ...options.headers,
@@ -35,57 +35,57 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = async (userData, authToken) => {
-    localStorage.setItem('token', authToken);
-    localStorage.setItem('user', JSON.stringify(userData));
-    setUser(userData);
+  const login = async (adminData, authToken) => {
+    localStorage.setItem('adminToken', authToken);
+    localStorage.setItem('admin', JSON.stringify(adminData));
+    setAdmin(adminData);
     setToken(authToken);
     setLoading(false);
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('admin');
+    setAdmin(null);
     setToken(null);
   };
 
-  // Initialize auth state
+  // Initialize admin auth state
   useEffect(() => {
-    const initializeAuth = async () => {
-      const storedToken = localStorage.getItem('token');
-      const storedUser = localStorage.getItem('user');
+    const initializeAdminAuth = async () => {
+      const storedToken = localStorage.getItem('adminToken');
+      const storedAdmin = localStorage.getItem('admin');
 
-      if (storedToken && storedUser) {
+      if (storedToken && storedAdmin) {
         try {
           // Verify token is still valid
-          const response = await fetch(`${BASE_URL}/api/auth/user/profile`, {
+          const response = await fetch(`${BASE_URL}/api/auth/admin/profile`, {
             headers: {
               'Authorization': `Bearer ${storedToken}`
             }
           });
 
           if (response.ok) {
-            setUser(JSON.parse(storedUser));
+            setAdmin(JSON.parse(storedAdmin));
             setToken(storedToken);
           } else {
             logout();
           }
         } catch (error) {
-          console.error('Auth verification failed:', error);
+          console.error('Admin auth verification failed:', error);
           logout();
         }
       }
       setLoading(false);
     };
 
-    initializeAuth();
+    initializeAdminAuth();
   }, []);
 
   return (
-    <AuthContext.Provider 
+    <AdminAuthContext.Provider 
       value={{ 
-        user, 
+        admin, 
         token, 
         loading, 
         login, 
@@ -94,8 +94,8 @@ export const AuthProvider = ({ children }) => {
       }}
     >
       {children}
-    </AuthContext.Provider>
+    </AdminAuthContext.Provider>
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAdminAuth = () => useContext(AdminAuthContext);

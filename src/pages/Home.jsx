@@ -1,9 +1,9 @@
 import React, { useRef } from 'react';
-import Packages from '../component/Packages';
+import Packages from '../component/OurPackages';
 import OurMission from '../component/OurMission';
 import Hero from '../component/Hero';
 import Services from '../component/Services'
-import { Container } from '@mui/material';
+import { Box, Container } from '@mui/material';
 
 export default function Home() {
     const packagesRef = useRef(null);
@@ -29,7 +29,9 @@ export default function Home() {
             }}
         >  
             <Hero scrollToPackages={scrollToPackages}/>
-            <Packages ref={packagesRef}/>
+            <Box sx={{display: 'flex', justifyContent: 'space-around'}}>
+              <Packages ref={packagesRef}/>  
+            </Box>
             <OurMission />
             <Services />
         </Container>

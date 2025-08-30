@@ -114,9 +114,9 @@ export default function Navbar() {
           to="/dashboard"
           sx={{ display: 'flex', alignItems: 'center', gap: 2, textDecoration: 'none', color: 'black'  }}>
             <Avatar sx={{ bgcolor: '#046f04' }}>
-              {user.full_name?.charAt(0) || user.email?.charAt(0)}
+              {user.fullname?.charAt(0) || user.email?.charAt(0)}
             </Avatar>
-            <Typography>{user.full_name || user.email}</Typography>
+            <Typography>{user.fullname || user.email}</Typography>
           </Box>
         ) : (
           <>
@@ -157,11 +157,40 @@ export default function Navbar() {
 
             {user ? (
               <>
-                <IconButton onClick={handleMenuOpen} sx={{ p: 0 }}>
-                  <Avatar sx={{ bgcolor: '#FFD700', color: '#000' }}>
-                    {user.full_name?.charAt(0) || user.email?.charAt(0)}
-                  </Avatar>
-                </IconButton>
+                <Box>
+                  <IconButton 
+                    onClick={handleMenuOpen} 
+                    sx={{ 
+                      p: 0, 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 1 // space between avatar and name
+                    }}
+                  >
+                    <Typography 
+                      sx={{ 
+                        color: '#FFD700', 
+                        fontWeight: 600, 
+                        fontSize: { xs: '0.9rem', sm: '1rem' },
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {user.fullname}
+                    </Typography>
+                    <Avatar 
+                      sx={{ 
+                        bgcolor: '#FFD700', 
+                        color: '#000', 
+                        width: 36, 
+                        height: 36, 
+                        fontWeight: 'bold' 
+                      }}
+                    >
+                      {user.fullname?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
+                    </Avatar>
+                    
+                  </IconButton>
+                </Box>
                 <Menu
                   anchorEl={anchorEl}
                   open={Boolean(anchorEl)}
